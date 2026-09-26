@@ -1,0 +1,112 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "OtsuFire: an R tutorial",
+    "section": "",
+    "text": "Welcome\nThis is a tutorial for the OtsuFire R package: an open-source framework for annual burned-area mapping from medium-resolution optical imagery, built around a hybrid, intrinsically interpretable design.\nThe tutorial is organised as a progressive walkthrough of the framework. The first chapter describes OtsuFire conceptually: what it is, what gap it fills, how the workflow is organised in two stages, and what input information it relies on. The following chapters then open up the accompanying R package, illustrating each stage of the framework with worked examples that the reader can run on their own data.\nThe book is written as a living document. Chapters are added and revised as the tutorial grows, so its structure reflects the current state of the OtsuFire framework rather than a fixed reference.\n\n\n\n\n\n\nNote\n\n\n\nThe package is distributed through CRAN as OtsuFire. Installation instructions and the first worked example are provided in the How to use the OtsuFire package chapter.",
+    "crumbs": [
+      "Welcome"
+    ]
+  },
+  {
+    "objectID": "01_introduction.html",
+    "href": "01_introduction.html",
+    "title": "\n1  Introduction\n",
+    "section": "",
+    "text": "1.1 OtsuFire: A self-labelling framework for wall-to-wall burned-area mapping across sensors and decades",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Introduction</span>"
+    ]
+  },
+  {
+    "objectID": "01_introduction.html#otsufire-a-self-labelling-framework-for-wall-to-wall-burned-area-mapping-across-sensors-and-decades",
+    "href": "01_introduction.html#otsufire-a-self-labelling-framework-for-wall-to-wall-burned-area-mapping-across-sensors-and-decades",
+    "title": "\n1  Introduction\n",
+    "section": "",
+    "text": "OtsuFire is an open-source R package for long-term, wall-to-wall burned-area reconstruction. It implements a self-labelling, weakly supervised framework that generates training labels without requiring prior knowledge of fire locations or reliable target-year reference data.\nThe framework separates supervision generation from final classification through four stages:\n(i) Change-index mosaic preparation: Assemble change-index tiles (e.g., RBR, dNBR or RdNBR derived from pre- and post-fire composites) into an annual raster.\n(ii) Candidate generation and rule-based filtering: Delineate candidate patches using Otsu thresholds and seed-and-grow segmentation, then apply spectral, spatial and contextual filters, producing keep, review or drop candidate classes. These classes provide the basis for the internally supervision construction.\n(iii) Weak supervision: Construct burned and unburned training pools, train an XGBoost classifier, and estimate p_burned for candidate patches to produce the final burned-area map.\n(iv) Independent validation: Compare mapped burned areas with an external reference.\n\n\n\n\nOtsuFire pipeline.",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Introduction</span>"
+    ]
+  },
+  {
+    "objectID": "01_introduction.html#useful-links",
+    "href": "01_introduction.html#useful-links",
+    "title": "\n1  Introduction\n",
+    "section": "\n1.2 Useful links",
+    "text": "1.2 Useful links\n\n\nPackage and source code: OtsuFire on GitHub.\n\nStep-by-step guidance: OtsuFire workflow book.\n\nBug reports: GitHub issues.",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Introduction</span>"
+    ]
+  },
+  {
+    "objectID": "01_introduction.html#load-the-package",
+    "href": "01_introduction.html#load-the-package",
+    "title": "\n1  Introduction\n",
+    "section": "\n1.3 1) Load the package",
+    "text": "1.3 1) Load the package\n\nlibrary(OtsuFire)\n\nLoad the packages used to read, inspect and process spatial data.\n\nsuppressPackageStartupMessages({\n  library(sf)     # Vector data: fire perimeters and boundaries.\n  library(terra)  # Raster data: change indices and spatial masks.\n})\n\n# Disable s2 for operations on longitude/latitude data.\n# This does not reproject the data; EPSG:3035 operations are already planar.\nsf::sf_use_s2(FALSE)",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Introduction</span>"
+    ]
+  },
+  {
+    "objectID": "02_mosaic.html",
+    "href": "02_mosaic.html",
+    "title": "\n2  Mosaic\n",
+    "section": "",
+    "text": "2.1 Change-index mosaic",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Mosaic</span>"
+    ]
+  },
+  {
+    "objectID": "02_mosaic.html#change-index-mosaic",
+    "href": "02_mosaic.html#change-index-mosaic",
+    "title": "\n2  Mosaic\n",
+    "section": "",
+    "text": "Let’s start by preparing the imagery for one fire year.\nIn this example, we use change-index tiles exported from Google Earth Engine. The change index is calculated from pre- and post-fire composites and describes the spectral change between them.\nThe study area is split across several tiles. We will combine these tiles into a single raster, called a mosaic, for 2013. This mosaic will be the input for the next stage: identifying potentially burned patches.",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Mosaic</span>"
+    ]
+  },
+  {
+    "objectID": "02_mosaic.html#load-otsufire",
+    "href": "02_mosaic.html#load-otsufire",
+    "title": "\n2  Mosaic\n",
+    "section": "\n2.2 1. Load OtsuFire",
+    "text": "2.2 1. Load OtsuFire\nFirst, load the package in your R session.\n\nlibrary(OtsuFire)",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Mosaic</span>"
+    ]
+  },
+  {
+    "objectID": "02_mosaic.html#locate-your-input-data",
+    "href": "02_mosaic.html#locate-your-input-data",
+    "title": "\n2  Mosaic\n",
+    "section": "\n2.3 2. Locate your input data",
+    "text": "2.3 2. Locate your input data\nWe need two inputs:\n\nA folder containing the change-index tiles for 2013.\nA spatial file defining the study area.\n\nReplace the paths below with the locations on your computer.\n\ntiles_folder &lt;- \"data/change_index_tiles/2013\"\n\nmask_path &lt;- \"data/study_area/study_area.shp\"\n\ntile_pattern &lt;- \"RBR_2013_tile*.tif\"\n\nThe study-area mask defines the area we want to include in the mosaic. It is separate from the reference-coverage mask used later for validation.\nLet’s check that R can find the folder and the mask file.\n\ndir.exists(tiles_folder)\n\nfile.exists(mask_path)\n\nBoth checks should return TRUE. If either returns FALSE, check the corresponding path before continuing.",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Mosaic</span>"
+    ]
+  },
+  {
+    "objectID": "02_mosaic.html#build-the-mosaic",
+    "href": "02_mosaic.html#build-the-mosaic",
+    "title": "\n2  Mosaic\n",
+    "section": "\n2.4 3. Build the mosaic",
+    "text": "2.4 3. Build the mosaic\nWe can now combine the tiles into one raster.\nThe example below specifies:\n\n\nfolder_path: the folder containing the tiles.\n\nyear: the fire year being processed.\n\nraster_pattern: the filename pattern used to select the tiles.\n\nmask: the study-area boundary.\n\nlower_cap: the lower limit used to cap change-index values.\n\nThe value -1000 is used for this example. Check that it is appropriate for the index and numerical scale of your own rasters.\n\nchange_index_mosaic(\n  folder_path    = tiles_folder,\n  output_dir     = tiles_folder,\n  year           = 2013,\n  raster_pattern = tile_pattern,\n  mask           = mask_path,\n  lower_cap      = -1000\n)\n\nMosaicking may take some time, depending on the number and size of the tiles.",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Mosaic</span>"
+    ]
+  },
+  {
+    "objectID": "02_mosaic.html#check-the-result",
+    "href": "02_mosaic.html#check-the-result",
+    "title": "\n2  Mosaic\n",
+    "section": "\n2.5 4. Check the result",
+    "text": "2.5 4. Check the result\nAfter the function finishes, locate the output raster and inspect it in your GIS software.\nCheck that:\n\nThe mosaic covers the intended study area.\nThere are no unexpected gaps or seams between tiles.\nThe coordinate reference system and pixel size are correct.\nThe values are consistent with the input change index.\n\nKeep the output path: we will use it as the change_index input in the next stage.\n\n\n\nExample of the generated mosaic and its main features. (A) Overview of the generated mosaic; (B) appearance of a burned area in the RBR layer; (C) water mask; and (D) areas with no data in the original mosaic.",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Mosaic</span>"
+    ]
+  }
+]
