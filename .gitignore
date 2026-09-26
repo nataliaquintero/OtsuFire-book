@@ -1,0 +1,15 @@
+/.quarto/
+**/*.quarto_ipynb
+
+# Rendered output (published separately to the gh-pages branch)
+/_book/
+*.html
+*_files/
+index.tex
+
+# Earlier drafts, not published
+01-otsufire.qmd
+02-how-to-use.qmd
+
+# Real local paths (never published)
+_local_paths.R
