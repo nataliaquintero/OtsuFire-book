@@ -40,7 +40,7 @@ The framework separates supervision generation from final classification through
 ## Useful links
 
 - **Package and source code:** [OtsuFire on GitHub](https://github.com/olgaviedma/OtsuFire).
-- **Step-by-step guidance:** [OtsuFire workflow book](https://github.com/nataliaquintero/OtsuFire-book).
+- **Step-by-step guidance:** [OtsuFire workflow book](https://nataliaquintero.github.io/OtsuFire-book/).
 - **Bug reports:** [GitHub issues](https://github.com/olgaviedma/OtsuFire/issues).
 
 ## 1) Load the package
