@@ -1,0 +1,268 @@
+---
+title: "Otsu-guided segmentation"
+format:
+  html:
+    toc: true
+    code-copy: true
+engine: knitr
+editor: source
+execute:
+  echo: true
+  output: true
+---
+
+```{=html}
+<style>
+.justified p {
+  text-align: justify;
+}
+</style>
+```
+
+## Otsu-guided segmentation and rule-based filtering
+
+::: {.justified}
+
+This is the second stage of the workflow. It finds candidate burned
+patches with rules only: no training data, no model.
+
+The change-index mosaic from the previous chapter is split into
+burned / unburned by an Otsu threshold. The threshold is not global:
+it is computed separately for every combination of land-cover class
+and ecoregion, so a pine forest in the north and a shrubland in the
+south are cut at different severities.
+
+Pixels above a strict "seed" threshold start a candidate patch; the
+patch then grows into neighbouring pixels above a looser threshold.
+Grown patches pass through a set of filters (size, overlap with the
+previous year's fires, spectral support), and each one ends up
+labelled `keep`, `review` or `drop`.
+
+The output that matters is `internal_decisions.gpkg`: one polygon per
+candidate, with its label. This file is the training input for the
+next stage. Everything else this stage writes is diagnostics.
+
+In the API these functions are called `deterministic`, because this
+stage follows explicit rules rather than fitting a classifier. The
+Otsu thresholds themselves are not fixed: they are estimated from the
+input data.
+
+:::
+
+## 1. Load OtsuFire
+
+```{r}
+library(OtsuFire)
+```
+
+This stage delegates patch growing to the
+[WhiteboxTools](https://www.whiteboxgeo.com/) engine, via the
+`whitebox` R package. The first time you use it, download the
+underlying binaries once with `whitebox::install_whitebox()`.
+
+## 2. Locate your input data
+
+Segmentation needs more inputs than the mosaic step:
+
+- `change_index`: the mosaic built in the previous chapter.
+- `vegetation_map`: a land-cover raster (e.g. CORINE), used to vary
+  the Otsu threshold by class.
+- `burnable_mask`: a binary raster on the same grid, marking pixels
+  that can burn at all.
+- `ecoregion_shapefile_path` / `peninsula_shapefile_path`: the spatial
+  units used to compute per-unit thresholds, and the overall study
+  area.
+- `hotspots` and `previous_year_burned` are optional: active-fire
+  detections and last year's burned area. Set either to `NULL` if you
+  do not have it for your target year.
+
+Replace the paths below with the locations on your computer.
+
+```{r}
+change_index      <- "data/mosaics/change_index_2013.tif"
+vegetation_map     <- "data/land_cover/vegetation_map.tif"
+burnable_mask      <- "data/land_cover/burnable_mask.tif"
+ecoregion_shp      <- "data/boundaries/ecoregions.shp"
+peninsula_shp      <- "data/boundaries/study_area.shp"
+
+previous_year_burned <- "data/fires/burned_2012.shp"  # NULL if unavailable
+hotspots             <- "data/hotspots/hotspots_2013.geojson"  # NULL if unavailable
+```
+
+```{r}
+#| include: false
+if (file.exists("_local_paths.R")) source("_local_paths.R")
+```
+
+## 3. Choose the detection parameters
+
+Detection is controlled by three parameter lists, instead of a closed
+set of named presets.
+
+**`detect_params`** decides where a patch starts and how far it grows:
+
+- `seed_threshold`: the severity a pixel needs to start a patch.
+  Higher means fewer, more certain patches.
+- `growth_delta`: how far below the seed threshold a neighbouring
+  pixel may be and still be absorbed into the patch.
+- `minimum_growth_threshold`: a hard floor that growth never crosses,
+  whatever `growth_delta` allows.
+- `minimum_seed_pixels`: the minimum number of seed pixels a patch
+  needs to exist. This is the main noise filter.
+
+Each of these can also be supplied as a `*_by_vegetation` vector,
+overriding the global value per land-cover class. Use this when the
+same severity means different things in different vegetation: a
+moderate change in shrubland can be a real fire, while the same value
+in a dense forest usually is not.
+
+```{r}
+detect_params <- list(
+  seed_threshold           = 300,
+  growth_delta             = 100,
+  minimum_growth_threshold = 200,
+  minimum_seed_pixels      = 20L
+)
+```
+
+**`refine_params`** cleans up the resulting geometry: a working buffer
+around the study area, a minimum area below which slivers are
+dropped, and whether overlapping patches are merged.
+
+```{r}
+refine_params <- list(
+  aoi_buffer_m             = 5000,
+  minimum_detected_area_m2 = 10,
+  merge_overlaps           = TRUE
+)
+```
+
+**`scoring_params`** controls the filters that assign the final
+`keep` / `review` / `drop` label: how a patch is penalised for sitting
+on the previous year's scar, and the minimum area it must retain after
+that penalty.
+
+```{r}
+scoring_params <- list(
+  previous_fire_exclusion_buffer_m = 90,
+  minimum_remaining_area_m2        = 20000
+)
+```
+
+See `?build_burned_mapping_config` for the complete list of settings
+in each block, and the book's reference chapter for guidance on
+tuning them for your own study area.
+
+## 4. Build the configuration
+
+As in the mosaic stage, building the configuration validates your
+inputs immediately; it does not run anything yet.
+
+```{r}
+det_cfg <- build_burned_mapping_config(
+  change_index          = change_index,
+  vegetation_map         = vegetation_map,
+  burnable_mask          = burnable_mask,
+  hotspots               = hotspots,
+  previous_year_burned   = previous_year_burned,
+  target_year            = 2013L,
+  output_dir             = "results",
+  run_name               = "demo_run",
+  detect_params  = detect_params,
+  refine_params  = refine_params,
+  scoring_params = scoring_params,
+  options = list(
+    ecoregion_shapefile_path = ecoregion_shp,
+    peninsula_shapefile_path = peninsula_shp
+  )
+)
+```
+
+## 5. Run detection and scoring
+
+One call runs detection and scoring together. Expect this to take
+tens of minutes for a full study area and year, depending on its size
+and the number of candidate patches.
+
+```{r}
+#| eval: false
+
+det <- run_deterministic_pipeline(
+  det_cfg,
+  write_outputs  = TRUE,
+  overwrite      = FALSE,
+  run_validation = FALSE  # the next chapter handles validation
+)
+```
+
+The paths it writes:
+
+```{r}
+#| eval: false
+
+det$result_paths$grown_patches
+det$result_paths$refined_patches
+det$result_paths$internal_decisions  # <- the input to the next stage
+det$result_paths$timing_csv
+```
+
+## 6. Check the result
+
+```{r}
+#| eval: false
+
+dec <- sf::st_read(det$result_paths$internal_decisions, quiet = TRUE)
+
+nrow(dec)
+table(dec$class_final, useNA = "ifany")  # keep / review / drop counts
+
+# A useful sanity check: total kept area, in hectares.
+sum(as.numeric(sf::st_area(dec[dec$class_final == "keep", ])) / 10000)
+```
+
+If `keep` is a handful of polygons, the thresholds are too strict for
+this year and study area. If it is tens of thousands, they are too
+loose. Adjust `seed_threshold` and `minimum_seed_pixels` first: they
+move the result the most.
+
+## 7. Step by step
+
+`run_deterministic_pipeline()` is a wrapper over two functions. Call
+them directly when you want to inspect the candidates before they are
+scored.
+
+```{r}
+#| eval: false
+
+patches <- detect_burned_patches(det_cfg, write_outputs = TRUE)
+patches$grown_patches_path
+
+scored <- score_burned_patches(patches, det_cfg, write_outputs = TRUE)
+scored$internal_decisions_path
+```
+
+## 8. Optional: separating chained fires
+
+Two real fires can be joined by a thin neck of burned pixels and come
+out as a single, oddly shaped patch. `apply_chain_cleaning()` cuts
+necks narrower than a chosen width and splits such a patch back into
+its parts. It is opt-in, and it leaves well-shaped patches untouched.
+
+```{r}
+#| eval: false
+
+chained <- apply_chain_cleaning(
+  refine_path        = det$result_paths$refined_patches,
+  year               = 2013L,
+  dechain_distance_m = 180,
+  pixel_size_m       = 90
+)
+```
+
+Score the de-chained patches instead of the original ones if you use
+this step.
+
+Keep the `internal_decisions.gpkg` path: it is the input for the
+supervised stage, in the next chapter. Its `keep` / `review` / `drop`
+labels are rules, not ground truth, and the next stage learns from
+them.
