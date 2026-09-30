@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="generator" content="quarto-1.9.37">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-<title>2&nbsp; Mosaic – OtsuFire: an R tutorial</title>
+<title>3&nbsp; Otsu-guided segmentation – OtsuFire: an R tutorial</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -64,8 +64,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/quarto-search/fuse.min.js"></script>
 <script src="site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="./">
-<link href="./03_deterministic.html" rel="next">
-<link href="./01_introduction.html" rel="prev">
+<link href="./02_mosaic.html" rel="prev">
 <script src="site_libs/quarto-html/quarto.js" type="module"></script>
 <script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
@@ -110,7 +109,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./02_mosaic.html"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Mosaic</span></a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./03_deterministic.html"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Otsu-guided segmentation</span></a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -145,13 +144,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./02_mosaic.html" class="sidebar-item-text sidebar-link active">
+  <a href="./02_mosaic.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Mosaic</span></span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./03_deterministic.html" class="sidebar-item-text sidebar-link">
+  <a href="./03_deterministic.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Otsu-guided segmentation</span></span></a>
   </div>
 </li>
@@ -163,17 +162,21 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
         <nav id="TOC" role="doc-toc" class="toc-active"><h2 id="toc-title">Table of contents</h2>
    
   <ul>
-<li><a href="#change-index-mosaic" id="toc-change-index-mosaic" class="nav-link active" data-scroll-target="#change-index-mosaic"><span class="header-section-number">2.1</span> Change-index mosaic</a></li>
-  <li><a href="#load-otsufire" id="toc-load-otsufire" class="nav-link" data-scroll-target="#load-otsufire"><span class="header-section-number">2.2</span> 1. Load OtsuFire</a></li>
-  <li><a href="#locate-your-input-data" id="toc-locate-your-input-data" class="nav-link" data-scroll-target="#locate-your-input-data"><span class="header-section-number">2.3</span> 2. Locate your input data</a></li>
-  <li><a href="#build-the-mosaic" id="toc-build-the-mosaic" class="nav-link" data-scroll-target="#build-the-mosaic"><span class="header-section-number">2.4</span> 3. Build the mosaic</a></li>
-  <li><a href="#check-the-result" id="toc-check-the-result" class="nav-link" data-scroll-target="#check-the-result"><span class="header-section-number">2.5</span> 4. Check the result</a></li>
+<li><a href="#otsu-guided-segmentation-and-rule-based-filtering" id="toc-otsu-guided-segmentation-and-rule-based-filtering" class="nav-link active" data-scroll-target="#otsu-guided-segmentation-and-rule-based-filtering"><span class="header-section-number">3.1</span> Otsu-guided segmentation and rule-based filtering</a></li>
+  <li><a href="#load-otsufire" id="toc-load-otsufire" class="nav-link" data-scroll-target="#load-otsufire"><span class="header-section-number">3.2</span> 1. Load OtsuFire</a></li>
+  <li><a href="#locate-your-input-data" id="toc-locate-your-input-data" class="nav-link" data-scroll-target="#locate-your-input-data"><span class="header-section-number">3.3</span> 2. Locate your input data</a></li>
+  <li><a href="#choose-the-detection-parameters" id="toc-choose-the-detection-parameters" class="nav-link" data-scroll-target="#choose-the-detection-parameters"><span class="header-section-number">3.4</span> 3. Choose the detection parameters</a></li>
+  <li><a href="#build-the-configuration" id="toc-build-the-configuration" class="nav-link" data-scroll-target="#build-the-configuration"><span class="header-section-number">3.5</span> 4. Build the configuration</a></li>
+  <li><a href="#run-detection-and-scoring" id="toc-run-detection-and-scoring" class="nav-link" data-scroll-target="#run-detection-and-scoring"><span class="header-section-number">3.6</span> 5. Run detection and scoring</a></li>
+  <li><a href="#check-the-result" id="toc-check-the-result" class="nav-link" data-scroll-target="#check-the-result"><span class="header-section-number">3.7</span> 6. Check the result</a></li>
+  <li><a href="#step-by-step" id="toc-step-by-step" class="nav-link" data-scroll-target="#step-by-step"><span class="header-section-number">3.8</span> 7. Step by step</a></li>
+  <li><a href="#optional-separating-chained-fires" id="toc-optional-separating-chained-fires" class="nav-link" data-scroll-target="#optional-separating-chained-fires"><span class="header-section-number">3.9</span> 8. Optional: separating chained fires</a></li>
   </ul></nav>
     </div>
 <!-- main -->
-<main class="content page-columns page-full" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block default"><div class="quarto-title">
+<main class="content" id="quarto-document-content"><header id="title-block-header" class="quarto-title-block default"><div class="quarto-title">
 <h1 class="title">
-<span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Mosaic</span>
+<span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Otsu-guided segmentation</span>
 </h1>
 </div>
 
@@ -193,87 +196,161 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   text-align: justify;
 }
 </style>
-<section id="change-index-mosaic" class="level2" data-number="2.1"><h2 data-number="2.1" class="anchored" data-anchor-id="change-index-mosaic">
-<span class="header-section-number">2.1</span> Change-index mosaic</h2>
+<section id="otsu-guided-segmentation-and-rule-based-filtering" class="level2" data-number="3.1"><h2 data-number="3.1" class="anchored" data-anchor-id="otsu-guided-segmentation-and-rule-based-filtering">
+<span class="header-section-number">3.1</span> Otsu-guided segmentation and rule-based filtering</h2>
 <div class="justified">
-<p>Let’s start by preparing the imagery for one fire year.</p>
-<p>In this example, we use change-index tiles exported from Google Earth Engine. The change index is calculated from pre- and post-fire composites and describes the spectral change between them.</p>
-<p>The study area is split across several tiles. We will combine these tiles into a single raster, called a <strong>mosaic</strong>, for 2013. This mosaic will be the input for the next stage: identifying potentially burned patches.</p>
+<p>This is the second stage of the workflow. It finds candidate burned patches with rules only: no training data, no model.</p>
+<p>The change-index mosaic from the previous chapter is split into burned / unburned by an Otsu threshold. The threshold is not global: it is computed separately for every combination of land-cover class and ecoregion, so a pine forest in the north and a shrubland in the south are cut at different severities.</p>
+<p>Pixels above a strict “seed” threshold start a candidate patch; the patch then grows into neighbouring pixels above a looser threshold. Grown patches pass through a set of filters (size, overlap with the previous year’s fires, spectral support), and each one ends up labelled <code>keep</code>, <code>review</code> or <code>drop</code>.</p>
+<p>The output that matters is <code>internal_decisions.gpkg</code>: one polygon per candidate, with its label. This file is the training input for the next stage. Everything else this stage writes is diagnostics.</p>
+<p>In the API these functions are called <code>deterministic</code>, because this stage follows explicit rules rather than fitting a classifier. The Otsu thresholds themselves are not fixed: they are estimated from the input data.</p>
 </div>
-</section><section id="load-otsufire" class="level2" data-number="2.2"><h2 data-number="2.2" class="anchored" data-anchor-id="load-otsufire">
-<span class="header-section-number">2.2</span> 1. Load OtsuFire</h2>
-<p>First, load the package in your R session.</p>
+</section><section id="load-otsufire" class="level2" data-number="3.2"><h2 data-number="3.2" class="anchored" data-anchor-id="load-otsufire">
+<span class="header-section-number">3.2</span> 1. Load OtsuFire</h2>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/olgaviedma/OtsuFire">OtsuFire</a></span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-</section><section id="locate-your-input-data" class="level2" data-number="2.3"><h2 data-number="2.3" class="anchored" data-anchor-id="locate-your-input-data">
-<span class="header-section-number">2.3</span> 2. Locate your input data</h2>
-<p>We need two inputs:</p>
+<p>This stage delegates patch growing to the <a href="https://www.whiteboxgeo.com/">WhiteboxTools</a> engine, via the <code>whitebox</code> R package. The first time you use it, download the underlying binaries once with <code><a href="https://whiteboxr.gishub.org/reference/install_whitebox.html">whitebox::install_whitebox()</a></code>.</p>
+</section><section id="locate-your-input-data" class="level2" data-number="3.3"><h2 data-number="3.3" class="anchored" data-anchor-id="locate-your-input-data">
+<span class="header-section-number">3.3</span> 2. Locate your input data</h2>
+<p>Segmentation needs more inputs than the mosaic step:</p>
 <ul>
-<li>A folder containing the change-index tiles for 2013.</li>
-<li>A spatial file defining the study area.</li>
+<li>
+<code>change_index</code>: the mosaic built in the previous chapter.</li>
+<li>
+<code>vegetation_map</code>: a land-cover raster (e.g.&nbsp;CORINE), used to vary the Otsu threshold by class.</li>
+<li>
+<code>burnable_mask</code>: a binary raster on the same grid, marking pixels that can burn at all.</li>
+<li>
+<code>ecoregion_shapefile_path</code> / <code>peninsula_shapefile_path</code>: the spatial units used to compute per-unit thresholds, and the overall study area.</li>
+<li>
+<code>hotspots</code> and <code>previous_year_burned</code> are optional: active-fire detections and last year’s burned area. Set either to <code>NULL</code> if you do not have it for your target year.</li>
 </ul>
 <p>Replace the paths below with the locations on your computer.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">tiles_folder</span> <span class="op">&lt;-</span> <span class="st">"data/change_index_tiles/2013"</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">change_index</span>      <span class="op">&lt;-</span> <span class="st">"data/mosaics/change_index_2013.tif"</span></span>
+<span><span class="va">vegetation_map</span>     <span class="op">&lt;-</span> <span class="st">"data/land_cover/vegetation_map.tif"</span></span>
+<span><span class="va">burnable_mask</span>      <span class="op">&lt;-</span> <span class="st">"data/land_cover/burnable_mask.tif"</span></span>
+<span><span class="va">ecoregion_shp</span>      <span class="op">&lt;-</span> <span class="st">"data/boundaries/ecoregions.shp"</span></span>
+<span><span class="va">peninsula_shp</span>      <span class="op">&lt;-</span> <span class="st">"data/boundaries/study_area.shp"</span></span>
 <span></span>
-<span><span class="va">mask_path</span> <span class="op">&lt;-</span> <span class="st">"data/study_area/study_area.shp"</span></span>
-<span></span>
-<span><span class="va">tile_pattern</span> <span class="op">&lt;-</span> <span class="st">"RBR_2013_tile*.tif"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span><span class="va">previous_year_burned</span> <span class="op">&lt;-</span> <span class="st">"data/fires/burned_2012.shp"</span>  <span class="co"># NULL if unavailable</span></span>
+<span><span class="va">hotspots</span>             <span class="op">&lt;-</span> <span class="st">"data/hotspots/hotspots_2013.geojson"</span>  <span class="co"># NULL if unavailable</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>The study-area mask defines the area we want to include in the mosaic. It is separate from the reference-coverage mask used later for validation.</p>
-<p>Let’s check that R can find the folder and the mask file.</p>
-<div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/files2.html">dir.exists</a></span><span class="op">(</span><span class="va">tiles_folder</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/files.html">file.exists</a></span><span class="op">(</span><span class="va">mask_path</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<p>Both checks should return <code>TRUE</code>. If either returns <code>FALSE</code>, check the corresponding path before continuing.</p>
-</section><section id="build-the-mosaic" class="level2" data-number="2.4"><h2 data-number="2.4" class="anchored" data-anchor-id="build-the-mosaic">
-<span class="header-section-number">2.4</span> 3. Build the mosaic</h2>
-<p>We can now combine the tiles into one raster.</p>
-<p>The example below specifies:</p>
+</section><section id="choose-the-detection-parameters" class="level2" data-number="3.4"><h2 data-number="3.4" class="anchored" data-anchor-id="choose-the-detection-parameters">
+<span class="header-section-number">3.4</span> 3. Choose the detection parameters</h2>
+<p>Detection is controlled by three parameter lists, instead of a closed set of named presets.</p>
+<p><strong><code>detect_params</code></strong> decides where a patch starts and how far it grows:</p>
 <ul>
 <li>
-<code>folder_path</code>: the folder containing the tiles.</li>
+<code>seed_threshold</code>: the severity a pixel needs to start a patch. Higher means fewer, more certain patches.</li>
 <li>
-<code>year</code>: the fire year being processed.</li>
+<code>growth_delta</code>: how far below the seed threshold a neighbouring pixel may be and still be absorbed into the patch.</li>
 <li>
-<code>raster_pattern</code>: the filename pattern used to select the tiles.</li>
+<code>minimum_growth_threshold</code>: a hard floor that growth never crosses, whatever <code>growth_delta</code> allows.</li>
 <li>
-<code>mask</code>: the study-area boundary.</li>
-<li>
-<code>lower_cap</code>: the lower limit used to cap change-index values.</li>
+<code>minimum_seed_pixels</code>: the minimum number of seed pixels a patch needs to exist. This is the main noise filter.</li>
 </ul>
-<p>The value <code>-1000</code> is used for this example. Check that it is appropriate for the index and numerical scale of your own rasters.</p>
+<p>Each of these can also be supplied as a <code>*_by_vegetation</code> vector, overriding the global value per land-cover class. Use this when the same severity means different things in different vegetation: a moderate change in shrubland can be a real fire, while the same value in a dense forest usually is not.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/pkg/OtsuFire/man/change_index_mosaic.html">change_index_mosaic</a></span><span class="op">(</span></span>
-<span>  folder_path    <span class="op">=</span> <span class="va">tiles_folder</span>,</span>
-<span>  output_dir     <span class="op">=</span> <span class="va">tiles_folder</span>,</span>
-<span>  year           <span class="op">=</span> <span class="fl">2013</span>,</span>
-<span>  raster_pattern <span class="op">=</span> <span class="va">tile_pattern</span>,</span>
-<span>  mask           <span class="op">=</span> <span class="va">mask_path</span>,</span>
-<span>  lower_cap      <span class="op">=</span> <span class="op">-</span><span class="fl">1000</span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">detect_params</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span></span>
+<span>  seed_threshold           <span class="op">=</span> <span class="fl">300</span>,</span>
+<span>  growth_delta             <span class="op">=</span> <span class="fl">100</span>,</span>
+<span>  minimum_growth_threshold <span class="op">=</span> <span class="fl">200</span>,</span>
+<span>  minimum_seed_pixels      <span class="op">=</span> <span class="fl">20L</span></span>
 <span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>Mosaicking may take some time, depending on the number and size of the tiles.</p>
-</section><section id="check-the-result" class="level2 page-columns page-full" data-number="2.5"><h2 data-number="2.5" class="anchored" data-anchor-id="check-the-result">
-<span class="header-section-number">2.5</span> 4. Check the result</h2>
-<p>After the function finishes, locate the output raster and inspect it in your GIS software.</p>
-<p>Check that:</p>
-<ul>
-<li>The mosaic covers the intended study area.</li>
-<li>There are no unexpected gaps or seams between tiles.</li>
-<li>The coordinate reference system and pixel size are correct.</li>
-<li>The values are consistent with the input change index.</li>
-</ul>
-<p>Keep the output path: we will use it as the <code>change_index</code> input in the next stage.</p>
-<div class="page-columns page-full">
-<div class="quarto-figure quarto-figure-center page-columns page-full">
-<figure class="figure page-columns page-full"><p class="page-columns page-full"><img src="images/composite.png" class="img-fluid figure-img column-page" style="width:80.0%"></p>
-<figcaption>Example of the generated mosaic and its main features. (A) Overview of the generated mosaic; (B) appearance of a burned area in the RBR layer; (C) water mask; and (D) areas with no data in the original mosaic.</figcaption></figure>
+<p><strong><code>refine_params</code></strong> cleans up the resulting geometry: a working buffer around the study area, a minimum area below which slivers are dropped, and whether overlapping patches are merged.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">refine_params</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span></span>
+<span>  aoi_buffer_m             <span class="op">=</span> <span class="fl">5000</span>,</span>
+<span>  minimum_detected_area_m2 <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>  merge_overlaps           <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<p><strong><code>scoring_params</code></strong> controls the filters that assign the final <code>keep</code> / <code>review</code> / <code>drop</code> label: how a patch is penalised for sitting on the previous year’s scar, and the minimum area it must retain after that penalty.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">scoring_params</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span></span>
+<span>  previous_fire_exclusion_buffer_m <span class="op">=</span> <span class="fl">90</span>,</span>
+<span>  minimum_remaining_area_m2        <span class="op">=</span> <span class="fl">20000</span></span>
+<span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<p>See <code><a href="https://rdrr.io/pkg/OtsuFire/man/build_burned_mapping_config.html">?build_burned_mapping_config</a></code> for the complete list of settings in each block, and the book’s reference chapter for guidance on tuning them for your own study area.</p>
+</section><section id="build-the-configuration" class="level2" data-number="3.5"><h2 data-number="3.5" class="anchored" data-anchor-id="build-the-configuration">
+<span class="header-section-number">3.5</span> 4. Build the configuration</h2>
+<p>As in the mosaic stage, building the configuration validates your inputs immediately; it does not run anything yet.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">det_cfg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/OtsuFire/man/build_burned_mapping_config.html">build_burned_mapping_config</a></span><span class="op">(</span></span>
+<span>  change_index          <span class="op">=</span> <span class="va">change_index</span>,</span>
+<span>  vegetation_map         <span class="op">=</span> <span class="va">vegetation_map</span>,</span>
+<span>  burnable_mask          <span class="op">=</span> <span class="va">burnable_mask</span>,</span>
+<span>  hotspots               <span class="op">=</span> <span class="va">hotspots</span>,</span>
+<span>  previous_year_burned   <span class="op">=</span> <span class="va">previous_year_burned</span>,</span>
+<span>  target_year            <span class="op">=</span> <span class="fl">2013L</span>,</span>
+<span>  output_dir             <span class="op">=</span> <span class="st">"results"</span>,</span>
+<span>  run_name               <span class="op">=</span> <span class="st">"demo_run"</span>,</span>
+<span>  detect_params  <span class="op">=</span> <span class="va">detect_params</span>,</span>
+<span>  refine_params  <span class="op">=</span> <span class="va">refine_params</span>,</span>
+<span>  scoring_params <span class="op">=</span> <span class="va">scoring_params</span>,</span>
+<span>  options <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span></span>
+<span>    ecoregion_shapefile_path <span class="op">=</span> <span class="va">ecoregion_shp</span>,</span>
+<span>    peninsula_shapefile_path <span class="op">=</span> <span class="va">peninsula_shp</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section><section id="run-detection-and-scoring" class="level2" data-number="3.6"><h2 data-number="3.6" class="anchored" data-anchor-id="run-detection-and-scoring">
+<span class="header-section-number">3.6</span> 5. Run detection and scoring</h2>
+<p>One call runs detection and scoring together. Expect this to take tens of minutes for a full study area and year, depending on its size and the number of candidate patches.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">det</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/OtsuFire/man/run_deterministic_pipeline.html">run_deterministic_pipeline</a></span><span class="op">(</span></span>
+<span>  <span class="va">det_cfg</span>,</span>
+<span>  write_outputs  <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  overwrite      <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  run_validation <span class="op">=</span> <span class="cn">FALSE</span>  <span class="co"># the next chapter handles validation</span></span>
+<span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>The paths it writes:</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">det</span><span class="op">$</span><span class="va">result_paths</span><span class="op">$</span><span class="va">grown_patches</span></span>
+<span><span class="va">det</span><span class="op">$</span><span class="va">result_paths</span><span class="op">$</span><span class="va">refined_patches</span></span>
+<span><span class="va">det</span><span class="op">$</span><span class="va">result_paths</span><span class="op">$</span><span class="va">internal_decisions</span>  <span class="co"># &lt;- the input to the next stage</span></span>
+<span><span class="va">det</span><span class="op">$</span><span class="va">result_paths</span><span class="op">$</span><span class="va">timing_csv</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section><section id="check-the-result" class="level2" data-number="3.7"><h2 data-number="3.7" class="anchored" data-anchor-id="check-the-result">
+<span class="header-section-number">3.7</span> 6. Check the result</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">dec</span> <span class="op">&lt;-</span> <span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/st_read.html">st_read</a></span><span class="op">(</span><span class="va">det</span><span class="op">$</span><span class="va">result_paths</span><span class="op">$</span><span class="va">internal_decisions</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">dec</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html">table</a></span><span class="op">(</span><span class="va">dec</span><span class="op">$</span><span class="va">class_final</span>, useNA <span class="op">=</span> <span class="st">"ifany"</span><span class="op">)</span>  <span class="co"># keep / review / drop counts</span></span>
+<span></span>
+<span><span class="co"># A useful sanity check: total kept area, in hectares.</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/sum.html">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html">as.numeric</a></span><span class="op">(</span><span class="fu">sf</span><span class="fu">::</span><span class="fu"><a href="https://r-spatial.github.io/sf/reference/geos_measures.html">st_area</a></span><span class="op">(</span><span class="va">dec</span><span class="op">[</span><span class="va">dec</span><span class="op">$</span><span class="va">class_final</span> <span class="op">==</span> <span class="st">"keep"</span>, <span class="op">]</span><span class="op">)</span><span class="op">)</span> <span class="op">/</span> <span class="fl">10000</span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>If <code>keep</code> is a handful of polygons, the thresholds are too strict for this year and study area. If it is tens of thousands, they are too loose. Adjust <code>seed_threshold</code> and <code>minimum_seed_pixels</code> first: they move the result the most.</p>
+</section><section id="step-by-step" class="level2" data-number="3.8"><h2 data-number="3.8" class="anchored" data-anchor-id="step-by-step">
+<span class="header-section-number">3.8</span> 7. Step by step</h2>
+<p><code><a href="https://rdrr.io/pkg/OtsuFire/man/run_deterministic_pipeline.html">run_deterministic_pipeline()</a></code> is a wrapper over two functions. Call them directly when you want to inspect the candidates before they are scored.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">patches</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/OtsuFire/man/detect_burned_patches.html">detect_burned_patches</a></span><span class="op">(</span><span class="va">det_cfg</span>, write_outputs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">patches</span><span class="op">$</span><span class="va">grown_patches_path</span></span>
+<span></span>
+<span><span class="va">scored</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/OtsuFire/man/score_burned_patches.html">score_burned_patches</a></span><span class="op">(</span><span class="va">patches</span>, <span class="va">det_cfg</span>, write_outputs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">scored</span><span class="op">$</span><span class="va">internal_decisions_path</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section><section id="optional-separating-chained-fires" class="level2" data-number="3.9"><h2 data-number="3.9" class="anchored" data-anchor-id="optional-separating-chained-fires">
+<span class="header-section-number">3.9</span> 8. Optional: separating chained fires</h2>
+<p>Two real fires can be joined by a thin neck of burned pixels and come out as a single, oddly shaped patch. <code><a href="https://rdrr.io/pkg/OtsuFire/man/apply_chain_cleaning.html">apply_chain_cleaning()</a></code> cuts necks narrower than a chosen width and splits such a patch back into its parts. It is opt-in, and it leaves well-shaped patches untouched.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="downlit sourceCode r code-with-copy"><code class="sourceCode R"><span><span class="va">chained</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/OtsuFire/man/apply_chain_cleaning.html">apply_chain_cleaning</a></span><span class="op">(</span></span>
+<span>  refine_path        <span class="op">=</span> <span class="va">det</span><span class="op">$</span><span class="va">result_paths</span><span class="op">$</span><span class="va">refined_patches</span>,</span>
+<span>  year               <span class="op">=</span> <span class="fl">2013L</span>,</span>
+<span>  dechain_distance_m <span class="op">=</span> <span class="fl">180</span>,</span>
+<span>  pixel_size_m       <span class="op">=</span> <span class="fl">90</span></span>
+<span><span class="op">)</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>Score the de-chained patches instead of the original ones if you use this step.</p>
+<p>Keep the <code>internal_decisions.gpkg</code> path: it is the input for the supervised stage, in the next chapter. Its <code>keep</code> / <code>review</code> / <code>drop</code> labels are rules, not ground truth, and the next stage learns from them.</p>
 
 
 </section></main><!-- /main --><script id="quarto-html-after-body" type="application/javascript">
@@ -676,14 +753,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     }
   });
   </script><nav class="page-navigation"><div class="nav-page nav-page-previous">
-      <a href="./01_introduction.html" class="pagination-link" aria-label="Introduction">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Introduction</span></span>
+      <a href="./02_mosaic.html" class="pagination-link" aria-label="Mosaic">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Mosaic</span></span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="./03_deterministic.html" class="pagination-link" aria-label="Otsu-guided segmentation">
-        <span class="nav-page-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Otsu-guided segmentation</span></span> <i class="bi bi-arrow-right-short"></i>
-      </a>
   </div>
 </nav>
 </div> <!-- /content -->

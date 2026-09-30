@@ -108,5 +108,105 @@
     "crumbs": [
       "<span class='chapter-number'>2</span>  <span class='chapter-title'>Mosaic</span>"
     ]
+  },
+  {
+    "objectID": "03_deterministic.html",
+    "href": "03_deterministic.html",
+    "title": "\n3  Otsu-guided segmentation\n",
+    "section": "",
+    "text": "3.1 Otsu-guided segmentation and rule-based filtering",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Otsu-guided segmentation</span>"
+    ]
+  },
+  {
+    "objectID": "03_deterministic.html#otsu-guided-segmentation-and-rule-based-filtering",
+    "href": "03_deterministic.html#otsu-guided-segmentation-and-rule-based-filtering",
+    "title": "\n3  Otsu-guided segmentation\n",
+    "section": "",
+    "text": "This is the second stage of the workflow. It finds candidate burned patches with rules only: no training data, no model.\nThe change-index mosaic from the previous chapter is split into burned / unburned by an Otsu threshold. The threshold is not global: it is computed separately for every combination of land-cover class and ecoregion, so a pine forest in the north and a shrubland in the south are cut at different severities.\nPixels above a strict “seed” threshold start a candidate patch; the patch then grows into neighbouring pixels above a looser threshold. Grown patches pass through a set of filters (size, overlap with the previous year’s fires, spectral support), and each one ends up labelled keep, review or drop.\nThe output that matters is internal_decisions.gpkg: one polygon per candidate, with its label. This file is the training input for the next stage. Everything else this stage writes is diagnostics.\nIn the API these functions are called deterministic, because this stage follows explicit rules rather than fitting a classifier. The Otsu thresholds themselves are not fixed: they are estimated from the input data.",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Otsu-guided segmentation</span>"
+    ]
+  },
+  {
+    "objectID": "03_deterministic.html#load-otsufire",
+    "href": "03_deterministic.html#load-otsufire",
+    "title": "\n3  Otsu-guided segmentation\n",
+    "section": "\n3.2 1. Load OtsuFire",
+    "text": "3.2 1. Load OtsuFire\n\nlibrary(OtsuFire)\n\nThis stage delegates patch growing to the WhiteboxTools engine, via the whitebox R package. The first time you use it, download the underlying binaries once with whitebox::install_whitebox().",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Otsu-guided segmentation</span>"
+    ]
+  },
+  {
+    "objectID": "03_deterministic.html#locate-your-input-data",
+    "href": "03_deterministic.html#locate-your-input-data",
+    "title": "\n3  Otsu-guided segmentation\n",
+    "section": "\n3.3 2. Locate your input data",
+    "text": "3.3 2. Locate your input data\nSegmentation needs more inputs than the mosaic step:\n\n\nchange_index: the mosaic built in the previous chapter.\n\nvegetation_map: a land-cover raster (e.g. CORINE), used to vary the Otsu threshold by class.\n\nburnable_mask: a binary raster on the same grid, marking pixels that can burn at all.\n\necoregion_shapefile_path / peninsula_shapefile_path: the spatial units used to compute per-unit thresholds, and the overall study area.\n\nhotspots and previous_year_burned are optional: active-fire detections and last year’s burned area. Set either to NULL if you do not have it for your target year.\n\nReplace the paths below with the locations on your computer.\n\nchange_index      &lt;- \"data/mosaics/change_index_2013.tif\"\nvegetation_map     &lt;- \"data/land_cover/vegetation_map.tif\"\nburnable_mask      &lt;- \"data/land_cover/burnable_mask.tif\"\necoregion_shp      &lt;- \"data/boundaries/ecoregions.shp\"\npeninsula_shp      &lt;- \"data/boundaries/study_area.shp\"\n\nprevious_year_burned &lt;- \"data/fires/burned_2012.shp\"  # NULL if unavailable\nhotspots             &lt;- \"data/hotspots/hotspots_2013.geojson\"  # NULL if unavailable",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Otsu-guided segmentation</span>"
+    ]
+  },
+  {
+    "objectID": "03_deterministic.html#choose-the-detection-parameters",
+    "href": "03_deterministic.html#choose-the-detection-parameters",
+    "title": "\n3  Otsu-guided segmentation\n",
+    "section": "\n3.4 3. Choose the detection parameters",
+    "text": "3.4 3. Choose the detection parameters\nDetection is controlled by three parameter lists, instead of a closed set of named presets.\ndetect_params decides where a patch starts and how far it grows:\n\n\nseed_threshold: the severity a pixel needs to start a patch. Higher means fewer, more certain patches.\n\ngrowth_delta: how far below the seed threshold a neighbouring pixel may be and still be absorbed into the patch.\n\nminimum_growth_threshold: a hard floor that growth never crosses, whatever growth_delta allows.\n\nminimum_seed_pixels: the minimum number of seed pixels a patch needs to exist. This is the main noise filter.\n\nEach of these can also be supplied as a *_by_vegetation vector, overriding the global value per land-cover class. Use this when the same severity means different things in different vegetation: a moderate change in shrubland can be a real fire, while the same value in a dense forest usually is not.\n\ndetect_params &lt;- list(\n  seed_threshold           = 300,\n  growth_delta             = 100,\n  minimum_growth_threshold = 200,\n  minimum_seed_pixels      = 20L\n)\n\nrefine_params cleans up the resulting geometry: a working buffer around the study area, a minimum area below which slivers are dropped, and whether overlapping patches are merged.\n\nrefine_params &lt;- list(\n  aoi_buffer_m             = 5000,\n  minimum_detected_area_m2 = 10,\n  merge_overlaps           = TRUE\n)\n\nscoring_params controls the filters that assign the final keep / review / drop label: how a patch is penalised for sitting on the previous year’s scar, and the minimum area it must retain after that penalty.\n\nscoring_params &lt;- list(\n  previous_fire_exclusion_buffer_m = 90,\n  minimum_remaining_area_m2        = 20000\n)\n\nSee ?build_burned_mapping_config for the complete list of settings in each block, and the book’s reference chapter for guidance on tuning them for your own study area.",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Otsu-guided segmentation</span>"
+    ]
+  },
+  {
+    "objectID": "03_deterministic.html#build-the-configuration",
+    "href": "03_deterministic.html#build-the-configuration",
+    "title": "\n3  Otsu-guided segmentation\n",
+    "section": "\n3.5 4. Build the configuration",
+    "text": "3.5 4. Build the configuration\nAs in the mosaic stage, building the configuration validates your inputs immediately; it does not run anything yet.\n\ndet_cfg &lt;- build_burned_mapping_config(\n  change_index          = change_index,\n  vegetation_map         = vegetation_map,\n  burnable_mask          = burnable_mask,\n  hotspots               = hotspots,\n  previous_year_burned   = previous_year_burned,\n  target_year            = 2013L,\n  output_dir             = \"results\",\n  run_name               = \"demo_run\",\n  detect_params  = detect_params,\n  refine_params  = refine_params,\n  scoring_params = scoring_params,\n  options = list(\n    ecoregion_shapefile_path = ecoregion_shp,\n    peninsula_shapefile_path = peninsula_shp\n  )\n)",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Otsu-guided segmentation</span>"
+    ]
+  },
+  {
+    "objectID": "03_deterministic.html#run-detection-and-scoring",
+    "href": "03_deterministic.html#run-detection-and-scoring",
+    "title": "\n3  Otsu-guided segmentation\n",
+    "section": "\n3.6 5. Run detection and scoring",
+    "text": "3.6 5. Run detection and scoring\nOne call runs detection and scoring together. Expect this to take tens of minutes for a full study area and year, depending on its size and the number of candidate patches.\n\ndet &lt;- run_deterministic_pipeline(\n  det_cfg,\n  write_outputs  = TRUE,\n  overwrite      = FALSE,\n  run_validation = FALSE  # the next chapter handles validation\n)\n\nThe paths it writes:\n\ndet$result_paths$grown_patches\ndet$result_paths$refined_patches\ndet$result_paths$internal_decisions  # &lt;- the input to the next stage\ndet$result_paths$timing_csv",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Otsu-guided segmentation</span>"
+    ]
+  },
+  {
+    "objectID": "03_deterministic.html#check-the-result",
+    "href": "03_deterministic.html#check-the-result",
+    "title": "\n3  Otsu-guided segmentation\n",
+    "section": "\n3.7 6. Check the result",
+    "text": "3.7 6. Check the result\n\ndec &lt;- sf::st_read(det$result_paths$internal_decisions, quiet = TRUE)\n\nnrow(dec)\ntable(dec$class_final, useNA = \"ifany\")  # keep / review / drop counts\n\n# A useful sanity check: total kept area, in hectares.\nsum(as.numeric(sf::st_area(dec[dec$class_final == \"keep\", ])) / 10000)\n\nIf keep is a handful of polygons, the thresholds are too strict for this year and study area. If it is tens of thousands, they are too loose. Adjust seed_threshold and minimum_seed_pixels first: they move the result the most.",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Otsu-guided segmentation</span>"
+    ]
+  },
+  {
+    "objectID": "03_deterministic.html#step-by-step",
+    "href": "03_deterministic.html#step-by-step",
+    "title": "\n3  Otsu-guided segmentation\n",
+    "section": "\n3.8 7. Step by step",
+    "text": "3.8 7. Step by step\nrun_deterministic_pipeline() is a wrapper over two functions. Call them directly when you want to inspect the candidates before they are scored.\n\npatches &lt;- detect_burned_patches(det_cfg, write_outputs = TRUE)\npatches$grown_patches_path\n\nscored &lt;- score_burned_patches(patches, det_cfg, write_outputs = TRUE)\nscored$internal_decisions_path",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Otsu-guided segmentation</span>"
+    ]
+  },
+  {
+    "objectID": "03_deterministic.html#optional-separating-chained-fires",
+    "href": "03_deterministic.html#optional-separating-chained-fires",
+    "title": "\n3  Otsu-guided segmentation\n",
+    "section": "\n3.9 8. Optional: separating chained fires",
+    "text": "3.9 8. Optional: separating chained fires\nTwo real fires can be joined by a thin neck of burned pixels and come out as a single, oddly shaped patch. apply_chain_cleaning() cuts necks narrower than a chosen width and splits such a patch back into its parts. It is opt-in, and it leaves well-shaped patches untouched.\n\nchained &lt;- apply_chain_cleaning(\n  refine_path        = det$result_paths$refined_patches,\n  year               = 2013L,\n  dechain_distance_m = 180,\n  pixel_size_m       = 90\n)\n\nScore the de-chained patches instead of the original ones if you use this step.\nKeep the internal_decisions.gpkg path: it is the input for the supervised stage, in the next chapter. Its keep / review / drop labels are rules, not ground truth, and the next stage learns from them.",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Otsu-guided segmentation</span>"
+    ]
   }
 ]
